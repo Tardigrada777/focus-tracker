@@ -1,20 +1,24 @@
 import {Command} from '@oclif/core'
 import {container} from '../../container'
 import {StartFocusSession} from '../../domain/use-cases/log-focus-session'
-import {parseArgUtil} from '../../utils'
+import * as inquirer from 'inquirer'
+import {activities, areas} from '../../config'
 
 export default class Task extends Command {
-  static args = [
-    {name: 'area', required: true},
-    {name: 'activity', required: true},
-  ]
-
   async run(): Promise<void> {
-    const {args} = await this.parse(Task)
     const startFocusSessionUseCase = container.resolve<StartFocusSession>(StartFocusSession.token)
-    const parseArg = container.resolve<parseArgUtil>('parseArg')
-    const {value: activity} = parseArg(args.activity)
-    const {value: area} = parseArg(args.area)
+    const {activity} = await inquirer.prompt([{
+      name: 'activity',
+      message: 'select an activity',
+      type: 'list',
+      choices: activities.map(a => ({name: a})),
+    }])
+    const {area} = await inquirer.prompt([{
+      name: 'area',
+      message: 'select an area',
+      type: 'list',
+      choices: areas.map(a => ({name: a})),
+    }])
     await startFocusSessionUseCase.execute({activity, area})
   }
 }
