@@ -1,12 +1,28 @@
-import {Command} from '@oclif/core'
-import {container} from '../../container'
-import {StartFocusSession} from '../../domain/use-cases/log-focus-session'
+import {Command, Flags} from '@oclif/core'
 import * as inquirer from 'inquirer'
+import {container} from '../../container'
 import {activities, areas} from '../../config'
+import {UseCases} from '../../domain'
+import {IGetCurrentSession, IStartFocusSession} from '../../domain/use-cases'
 
 export default class Task extends Command {
+  static flags = {
+    finish: Flags.boolean({char: 'f'}),
+  }
+
   async run(): Promise<void> {
-    const startFocusSessionUseCase = container.resolve<StartFocusSession>(StartFocusSession.token)
+    const {flags} = await this.parse(Task)
+    const startFocusSessionUseCase = container.resolve<IStartFocusSession>(UseCases.StartFocusSession)
+    const getCurrentSessionUseCase = container.resolve<IGetCurrentSession>(UseCases.GetCurrentSession)
+
+    if (flags.finish) {
+      const currentSession = await getCurrentSessionUseCase.execute({})
+      if (!currentSession) return
+      const {activity, area} = currentSession
+      await startFocusSessionUseCase.execute({activity, area})
+      return
+    }
+
     const {activity} = await inquirer.prompt([{
       name: 'activity',
       message: 'select an activity',
@@ -19,6 +35,7 @@ export default class Task extends Command {
       type: 'list',
       choices: areas.map(a => ({name: a})),
     }])
+
     await startFocusSessionUseCase.execute({activity, area})
   }
 }

@@ -2,16 +2,18 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-import {readFile, writeFile} from 'node:fs/promises'
 import {IFocusSessionRepository, StoredFocusSession} from '../domain/use-cases'
 import {notion} from '../notion'
+import {JsonStorage} from './storage'
 
 const {DATABASE_ID = ''} = process.env
 
 export class FocusSessionRepository implements IFocusSessionRepository {
+  private _storage = new JsonStorage()
+
   async cleanFocusSession(activity: string, area: string): Promise<void> {
-    const sessions = await this.loadSessions()
-    await this.writeSessions(
+    const sessions = await this._storage.loadSessions()
+    await this._storage.writeSessions(
       sessions.filter(s => s.activity !== activity && s.area !== area),
     )
   }
@@ -50,30 +52,20 @@ export class FocusSessionRepository implements IFocusSessionRepository {
   }
 
   async checkFocusSession(activity: string, area: string): Promise<StoredFocusSession | null> {
-    const sessions = await this.loadSessions()
+    const sessions = await this._storage.loadSessions()
     const existedSession = sessions.find(s => s.activity === activity && s.area === area && s.end === null)
     return existedSession ?? null
   }
 
   async storeFocusSession(activity: string, area: string): Promise<boolean> {
-    const sessions = await this.loadSessions()
+    const sessions = await this._storage.loadSessions()
     sessions.push({
       activity,
       area,
       start: new Date().toISOString(),
       end: null,
     })
-    await this.writeSessions(sessions)
+    await this._storage.writeSessions(sessions)
     return true
-  }
-
-  private async loadSessions(): Promise<StoredFocusSession[]> {
-    const sessionsData = await readFile('sessions.json', {encoding: 'utf-8'})
-    const sessions = JSON.parse(sessionsData)
-    return sessions
-  }
-
-  private async writeSessions(sessions: StoredFocusSession[]): Promise<void> {
-    await writeFile('sessions.json', JSON.stringify(sessions, null, 2), {encoding: 'utf-8'})
   }
 }
