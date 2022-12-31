@@ -24,7 +24,7 @@
     "awilix": "^8.0.0",
     "date-fns": "^2.29.3",
     "dotenv": "^16.0.3",
-    "inquirer": "8.1.0"
+    "inquirer": "8.2.5"
   },
   "devDependencies": {
     "@oclif/test": "^2.2.17",
